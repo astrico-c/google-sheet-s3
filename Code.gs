@@ -1,7 +1,7 @@
 function createMenu() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Publish to S3')
-  .addItem('Configure...', 'showConfig')
+  .addItem('Update...', 'showConfig')
   .addToUi();
 }
 
@@ -13,7 +13,7 @@ function onOpen() {
   createMenu();
 }
 
-// publish updated JSON to S3 if changes were made to the first sheet
+// publish updated JSON on active sheet to S3
 // event object passed if called from trigger
 function publish(event) {
   // do nothing if required configuration settings are not present
@@ -21,13 +21,7 @@ function publish(event) {
     return;
   }
 
-  // do nothing if the edited sheet is not the first one
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  // sheets are indexed from 1 instead of 0
-  if (spreadsheet.getActiveSheet().getIndex() > 1) {
-    return;
-  }
-
   // get cell values from the range that contains data (2D array)
   var rows = spreadsheet
   .getDataRange()
@@ -96,19 +90,10 @@ function updateConfig(form) {
     awsSecretKey: form.awsSecretKey
   });
   var message;
-  var filename = [spreadsheet.getName().replace(' ','_'), spreadsheet.getActiveSheet().getName().replace(' ','_')].join('_');
+  var filename = [sheet.getName().replace(' ','_'), sheet.getActiveSheet().getName().replace(' ','_')].join('_');
   if (hasRequiredProps()) {
     message = 'Published spreadsheet will be accessible at: \nhttps://' + form.bucketName + '.s3.amazonaws.com/' + form.path + '/' + filename;
     publish();
-    // Create an onChange trigger programatically instead of manually because 
-    // manual triggers disappear for no reason. See:
-    // https://code.google.com/p/google-apps-script-issues/issues/detail?id=4854
-    // https://code.google.com/p/google-apps-script-issues/issues/detail?id=5831
-//    var sheet = SpreadsheetApp.getActive();
-//    ScriptApp.newTrigger("publish")
-//             .forSpreadsheet(sheet)
-//             .onChange()
-//             .create();
   }
   else {
     message = 'You will need to fill out all configuration options for your spreadsheet to be published to S3.';
