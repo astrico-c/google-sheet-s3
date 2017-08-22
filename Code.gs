@@ -22,14 +22,14 @@ function publish(event) {
   }
 
   // do nothing if the edited sheet is not the first one
-  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   // sheets are indexed from 1 instead of 0
-  if (sheet.getActiveSheet().getIndex() > 1) {
+  if (spreadsheet.getActiveSheet().getIndex() > 1) {
     return;
   }
 
   // get cell values from the range that contains data (2D array)
-  var rows = sheet
+  var rows = spreadsheet
   .getDataRange()
   .getValues();
 
@@ -68,7 +68,8 @@ function publish(event) {
   // https://engetc.com/projects/amazon-s3-api-binding-for-google-apps-script/
   var props = PropertiesService.getDocumentProperties().getProperties();
   var s3 = S3.getInstance(props.awsAccessKeyId, props.awsSecretKey);
-  s3.putObject(props.bucketName, [props.path, sheet.getId()].join('/'), objs);
+  var filename = [spreadsheet.getName().replace(' ','_'), spreadsheet.getActiveSheet().getName().replace(' ','_')].join('_');
+  s3.putObject(props.bucketName, [props.path, filename].join('/'), objs);
 }
 
 // show the configuration modal dialog UI
@@ -95,18 +96,19 @@ function updateConfig(form) {
     awsSecretKey: form.awsSecretKey
   });
   var message;
+  var filename = [spreadsheet.getName().replace(' ','_'), spreadsheet.getActiveSheet().getName().replace(' ','_')].join('_');
   if (hasRequiredProps()) {
-    message = 'Published spreadsheet will be accessible at: \nhttps://' + form.bucketName + '.s3.amazonaws.com/' + form.path + '/' + sheet.getId();
+    message = 'Published spreadsheet will be accessible at: \nhttps://' + form.bucketName + '.s3.amazonaws.com/' + form.path + '/' + filename;
     publish();
     // Create an onChange trigger programatically instead of manually because 
     // manual triggers disappear for no reason. See:
     // https://code.google.com/p/google-apps-script-issues/issues/detail?id=4854
     // https://code.google.com/p/google-apps-script-issues/issues/detail?id=5831
-    var sheet = SpreadsheetApp.getActive();
-    ScriptApp.newTrigger("publish")
-             .forSpreadsheet(sheet)
-             .onChange()
-             .create();
+//    var sheet = SpreadsheetApp.getActive();
+//    ScriptApp.newTrigger("publish")
+//             .forSpreadsheet(sheet)
+//             .onChange()
+//             .create();
   }
   else {
     message = 'You will need to fill out all configuration options for your spreadsheet to be published to S3.';
